@@ -9,7 +9,7 @@ export class UserService {
 		try {
 			const records = await base(TABLES.USERS)
 				.select({
-					filterByFormula: `{email} = '${email}'`,
+					filterByFormula: `{filloutemail} = '${email}'`,
 					maxRecords: 1
 				})
 				.firstPage();
@@ -86,8 +86,8 @@ export class UserService {
 
 			// Return user with token balance (stored directly in Airtable)
 			return {
-				email: user.fields.email,
-				name: user.fields.name,
+				email: user.fields.filloutemail,
+				name: user.fields.Name,
 				isAdmin: user.fields.isAdmin || false,
 				tokens: user.fields.tokens || 0
 			};
@@ -197,8 +197,8 @@ export class UserService {
 				const fields = record.fields as AirtableUser['fields'];
 				
 				users.push({
-					email: fields.email,
-					name: fields.name,
+					email: fields.filloutemail,
+					name: fields.Name,
 					isAdmin: fields.isAdmin || false,
 					tokens: fields.tokens || 0
 				});

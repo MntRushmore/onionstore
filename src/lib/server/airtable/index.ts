@@ -2,8 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 console.log("✅ Loaded Airtable Personal Access Token prefix:", process.env.AIRTABLE_ACCESS_TOKEN?.slice(0, 5));
 
-import AirtableConnectModule from '@theo-dev/airtable-connect';
-const AirtableConnect = AirtableConnectModule.AirtableConnect;
+import Airtable from 'airtable';
 
 if (!process.env.AIRTABLE_ACCESS_TOKEN) {
 	throw new Error('❌ AIRTABLE_ACCESS_TOKEN environment variable is required. Please add your Airtable Personal Access Token to your .env file.');
@@ -26,20 +25,19 @@ Current value: ${process.env.AIRTABLE_BASE_ID}
 
 console.log("✅ Using Airtable Base ID:", process.env.AIRTABLE_BASE_ID);
 
-// Initialize Airtable connection using AirtableConnect wrapper
-const { AirtableBase } = new AirtableConnect({
-	apiKey: process.env.AIRTABLE_ACCESS_TOKEN!,
-	baseId: process.env.AIRTABLE_BASE_ID!,
+// Initialize Airtable with Personal Access Token
+Airtable.configure({
+	apiKey: process.env.AIRTABLE_ACCESS_TOKEN!
 });
 
-const base = AirtableBase;
+const base = Airtable.base(process.env.AIRTABLE_BASE_ID!);
 
 // Table names - customize these to match your Airtable base
 const TABLES = {
-	USERS: process.env.AIRTABLE_USERS_TABLE || 'Users',
+	USERS: process.env.AIRTABLE_USERS_TABLE || 'Signups',
 	SHOP_ITEMS: process.env.AIRTABLE_SHOP_ITEMS_TABLE || 'Shop Items',
 	SHOP_ORDERS: process.env.AIRTABLE_SHOP_ORDERS_TABLE || 'Shop Orders',
-	PAYOUTS: process.env.AIRTABLE_PAYOUTS_TABLE || 'Payouts'
+	PAYOUTS: process.env.AIRTABLE_PAYOUTS_TABLE || 'Submissions'
 };
 
 export { base, TABLES };
