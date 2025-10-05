@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		allOrders.map(async (order) => {
 			const [item, user] = await Promise.all([
 				ShopItemService.getById(order.shopItemId),
-				UserService.getUserWithTokens(order.userId)
+				UserService.getUserWithTokens(order.userEmail)
 			]);
 
 			return {
@@ -26,11 +26,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				createdAt: order.createdAt,
 				itemName: item?.name || 'Unknown Item',
 				itemImageUrl: item?.imageUrl || '',
-				itemType: item?.type || 'unknown',
-				userSlackId: user?.slackId || 'Unknown User',
-				userAvatarUrl: user?.avatarUrl || '',
-				userCountry: null, // You can add this to user service if needed
-				userYswsDbFulfilled: null // You can add this to user service if needed
+				itemType: item?.type || 'digital',
+				userEmail: user?.email || 'Unknown User',
+				userName: user?.name || 'Unknown',
+				userCountry: null,
+				userYswsDbFulfilled: null
 			};
 		})
 	);
@@ -61,8 +61,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				bValue = b.status;
 				break;
 			case 'customer':
-				aValue = a.userSlackId;
-				bValue = b.userSlackId;
+				aValue = a.userEmail;
+				bValue = b.userEmail;
 				break;
 			case 'item':
 				aValue = a.itemName;
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 
 	// Generate filter options
-	const uniqueCustomers = [...new Set(ordersWithDetails.map(o => o.userSlackId).filter(Boolean))].sort();
+	const uniqueCustomers = [...new Set(ordersWithDetails.map(o => o.userEmail).filter(Boolean))].sort();
 	const uniqueItems = [...new Set(ordersWithDetails.map(o => o.itemName).filter(Boolean))].sort();
 	const priceRange = ordersWithDetails.length > 0 ? {
 		min: Math.min(...ordersWithDetails.map(o => o.priceAtOrder)),

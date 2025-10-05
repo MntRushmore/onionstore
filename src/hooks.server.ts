@@ -1,57 +1,58 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { db, usersWithTokens } from '$lib/server/db';
+import { UserService } from '$lib/server/airtable';
 import { redirect, type Handle } from '@sveltejs/kit';
-import { SESSIONS_SECRET } from '$env/static/private';
-import { PUBLIC_SLACK_CLIENT_ID } from '$env/static/public';
-import { symmetric } from '$lib/server/crypto';
-import { eq } from 'drizzle-orm';
 
-const slackMiddleware: Handle = async ({ event, resolve }) => {
-	// we might not have the record yet
-	if (event.url.toString().includes('slack-callback')) return resolve(event);
-	if (event.url.toString().includes('/api/uploadthing')) return resolve(event);
+const authMiddleware: Handle = async ({ event, resolve }) => {
+	// Skip auth for login and API routes
+	if (event.url.pathname.startsWith('/login') || 
+		event.url.pathname.startsWith('/logout') || 
+		event.url.pathname.startsWith('/api/')) {
+		return resolve(event);
+	}
 
-	const start = performance.now();
 	const sessionCookie = event.cookies.get('session');
-	if (!sessionCookie) return resolve(event);
+	if (!sessionCookie) {
+		// No session, redirect to login
+		throw redirect(302, '/login');
+	}
 
-	let slackId;
 	try {
-		slackId = await symmetric.decrypt(sessionCookie, SESSIONS_SECRET);
-		if (!slackId) throw new Error();
-	} catch {
-		event.cookies.delete('session', {
-			path: '/'
-		});
-	}
+		// Parse session data (simple approach - in production use proper session management)
+		const sessionData = JSON.parse(sessionCookie);
+		
+		if (!sessionData.email) {
+			throw new Error('Invalid session data');
+		}
 
-	const [user] = await db
-		.select()
-		.from(usersWithTokens)
-		.where(eq(usersWithTokens.slackId, slackId!))
-		.limit(1);
-	if (!user) {
-		throw new Error(`Failed to get user ${slackId}, even when they have a valid session`);
-	}
-	event.locals.user = user;
+		// Get fresh user data from Airtable
+		const user = await UserService.getUserWithTokens(sessionData.email);
+		if (!user) {
+			// User doesn't exist anymore, clear session
+			event.cookies.delete('session', { path: '/' });
+			throw redirect(302, '/login');
+		}
 
-	console.log(`slackMiddleware took ${performance.now() - start}ms`);
-	return resolve(event);
-};
-
-const redirectMiddleware: Handle = async ({ event, resolve }) => {
-	if (event.url.toString().includes('/api/uploadthing')) return resolve(event);
-
-	if (!event.locals.user && event.url.pathname !== '/api/slack-callback') {
-		const authorizeUrl = `https://hackclub.slack.com/oauth/v2/authorize?scope=&user_scope=openid%2Cprofile%2Cemail&redirect_uri=${event.url.origin}/api/slack-callback&client_id=${PUBLIC_SLACK_CLIENT_ID}`;
-		return redirect(302, authorizeUrl);
-	}
-
-	if (event.locals.user && !event.locals.user.isAdmin && event.url.pathname.includes('admin')) {
-		return redirect(302, '/');
+		// Set user in locals for access in routes
+		event.locals.user = user;
+		
+	} catch (error) {
+		// Invalid session, clear it and redirect to login
+		event.cookies.delete('session', { path: '/' });
+		throw redirect(302, '/login');
 	}
 
 	return resolve(event);
 };
 
-export const handle = sequence(slackMiddleware, redirectMiddleware);
+const adminMiddleware: Handle = async ({ event, resolve }) => {
+	// Check admin access for admin routes
+	if (event.locals.user && 
+		!event.locals.user.isAdmin && 
+		event.url.pathname.startsWith('/admin')) {
+		throw redirect(302, '/');
+	}
+
+	return resolve(event);
+};
+
+export const handle = sequence(authMiddleware, adminMiddleware);

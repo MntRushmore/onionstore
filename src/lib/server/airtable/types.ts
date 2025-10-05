@@ -3,12 +3,10 @@
 export interface AirtableUser {
 	id?: string;
 	fields: {
-		slackId: string;
-		avatarUrl: string;
+		email: string;
+		name?: string;
 		isAdmin?: boolean;
-		country?: string;
-		yswsDbFulfilled?: boolean;
-		tokens?: number; // Calculated field in Airtable or stored directly
+		tokens?: number; // Token balance stored directly
 	};
 	createdTime?: string;
 }
@@ -35,7 +33,7 @@ export interface AirtableShopOrder {
 		status?: 'pending' | 'fulfilled' | 'rejected';
 		memo?: string;
 		createdAt?: string;
-		userId: string; // Link to Users table
+		userEmail: string; // User's email
 	};
 	createdTime?: string;
 }
@@ -44,20 +42,17 @@ export interface AirtablePayout {
 	id?: string;
 	fields: {
 		tokens: number;
-		userId: string; // Link to Users table
+		userEmail: string; // User's email
 		memo?: string;
 		createdAt?: string;
-		submittedToUnified?: boolean;
-		baseHackatimeHours?: number;
-		overridenHours?: number;
 	};
 	createdTime?: string;
 }
 
-// Types that match the original schema for compatibility
+// Simplified types for email-based authentication
 export interface UserWithTokens {
-	slackId: string;
-	avatarUrl: string;
+	email: string;
+	name?: string;
 	isAdmin: boolean;
 	tokens: number;
 }
@@ -69,8 +64,7 @@ export interface ShopItem {
 	imageUrl: string;
 	price: number;
 	usd_cost?: number;
-	type?: 'hcb' | 'third_party';
-	hcbMids?: string[];
+	type?: 'digital' | 'physical';
 }
 
 export interface ShopOrder {
@@ -80,16 +74,13 @@ export interface ShopOrder {
 	status: 'pending' | 'fulfilled' | 'rejected';
 	memo?: string;
 	createdAt?: Date;
-	userId: string;
+	userEmail: string;
 }
 
 export interface Payout {
 	id: string;
 	tokens: number;
-	userId: string;
+	userEmail: string;
 	memo?: string;
 	createdAt?: Date;
-	submittedToUnified?: boolean;
-	baseHackatimeHours?: number;
-	overridenHours?: number;
 }

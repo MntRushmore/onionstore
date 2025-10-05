@@ -4,7 +4,6 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { invalidateAll } from '$app/navigation';
-	import { getName } from 'country-list';
 
 	let { data }: { data: PageData } = $props();
 
@@ -517,7 +516,7 @@
 						<option value="all">All countries</option>
 						{#each filterOptions?.countries ?? [] as countryCode}
 							<option value={countryCode}>
-								{countryCode === 'GB' ? 'UK' : countryCode === 'US' ? 'US' : (getName(countryCode) || countryCode)} ({countryCode})
+								{countryCode}
 							</option>
 						{/each}
 					</select>
@@ -698,7 +697,7 @@
 									<div class="text-sm">
 										{#if order.userCountry}
 											<div class="text-gray-900 font-medium">
-												{order.userCountry === 'GB' ? 'UK' : order.userCountry === 'US' ? 'US' : (getName(order.userCountry) || order.userCountry)} ({order.userCountry})
+												{order.userCountry || 'N/A'}
 											</div>
 										{:else}
 											<div class="text-gray-400 italic">No country</div>

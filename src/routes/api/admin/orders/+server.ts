@@ -1,35 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ShopOrderService, ShopItemService } from '$lib/server/airtable';
-import { WebClient } from '@slack/web-api';
-import { SLACK_BOT_TOKEN, LOOPS_API_KEY } from '$env/static/private';
-
-const slack = new WebClient(SLACK_BOT_TOKEN);
-
-async function getEmailFromSlackId(userId: string): Promise<string | null> {
-	try {
-		const result = await slack.users.info({
-			user: userId,
-		});
-
-		if (result.ok && result.user) {
-			const email = result.user.profile?.email;
-
-			if (email) {
-				return email;
-			} else {
-				console.log(`No email found for user ID: ${userId}`);
-				return null;
-			}
-		} else {
-			console.error('Failed to fetch user info:', result.error);
-			return null;
-		}
-	} catch (error) {
-		console.error('Error fetching user email:', error);
-		return null;
-	}
-}
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -60,30 +31,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Order not found' }, { status: 404 });
 		}
 
-		const email = await getEmailFromSlackId(updatedOrder.userId);
-		if (email) {
-			const shopItem = await ShopItemService.getById(updatedOrder.shopItemId);
-			if (shopItem) {
-				const res = await fetch("https://app.loops.so/api/v1/transactional", {
-					method: 'POST',
-					headers: {
-						Authorization: `Bearer ${LOOPS_API_KEY}`,
-					},
-					body: JSON.stringify({
-						transactionalId: status === "fulfilled" ? "cmds33dqs1iis230ieyfsf4ue" : "cmds3pk591ppv2n0ii2v520dd",
-						email,
-						dataVariables: {
-							itemName: shopItem.name,
-							orderId: updatedOrder.id.slice(0, 8),
-							memo: memo || 'Unknown reason.',
-						}
-					})
-				})
-				if (!res.ok) {
-					console.error('Failed to send email notification:', await res.text());
-				}
-			}
-		}
+		// Email notification removed - admin can manually contact users if needed
 
 		return json({
 			success: true,

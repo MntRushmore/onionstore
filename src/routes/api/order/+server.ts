@@ -10,9 +10,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Shop item ID is required' }, { status: 400 });
 		}
 
-		// Get user from session (assuming you have auth setup)
-		const userId = locals.user?.slackId;
-		if (!userId) {
+		// Get user from session
+		const userEmail = locals.user?.email;
+		if (!userEmail) {
 			return json({ error: 'Authentication required' }, { status: 401 });
 		}
 
@@ -23,7 +23,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Get user's current token balance
-		const user = await UserService.getUserWithTokens(userId);
+		const user = await UserService.getUserWithTokens(userEmail);
 		if (!user) {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Subtract tokens from user's balance (this is the key change for Airtable)
-		const tokenSubtracted = await UserService.subtractTokens(userId, item.price);
+		const tokenSubtracted = await UserService.subtractTokens(userEmail, item.price);
 		if (!tokenSubtracted) {
 			return json({ error: 'Failed to process token payment' }, { status: 500 });
 		}
@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const newOrder = await ShopOrderService.create({
 			shopItemId: item.id,
 			priceAtOrder: item.price,
-			userId: userId,
+			userEmail: userEmail,
 			status: 'pending'
 		});
 

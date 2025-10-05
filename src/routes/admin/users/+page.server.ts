@@ -19,12 +19,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const item = await ShopItemService.getById(order.shopItemId);
 			return {
 				id: order.id,
-				userId: order.userId,
+				userEmail: order.userEmail,
 				priceAtOrder: order.priceAtOrder,
 				status: order.status,
 				createdAt: order.createdAt,
 				itemName: item?.name || 'Unknown Item',
-				itemType: item?.type || 'unknown'
+				itemType: item?.type || 'digital'
 			};
 		})
 	);

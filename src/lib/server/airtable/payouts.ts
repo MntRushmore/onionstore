@@ -9,12 +9,9 @@ export class PayoutService {
 		try {
 			const fields: AirtablePayout['fields'] = {
 				tokens: payoutData.tokens,
-				userId: payoutData.userId,
+				userEmail: payoutData.userEmail,
 				memo: payoutData.memo,
-				createdAt: new Date().toISOString(),
-				submittedToUnified: payoutData.submittedToUnified || false,
-				baseHackatimeHours: payoutData.baseHackatimeHours || 0,
-				overridenHours: payoutData.overridenHours || 0
+				createdAt: new Date().toISOString()
 			};
 
 			const records = await base(TABLES.PAYOUTS).create([{ fields }]);
@@ -44,20 +41,20 @@ export class PayoutService {
 	}
 
 	/**
-	 * Get payouts by user ID
+	 * Get payouts by user email
 	 */
-	static async getByUserId(userId: string): Promise<Payout[]> {
+	static async getByUserEmail(userEmail: string): Promise<Payout[]> {
 		try {
 			const records = await base(TABLES.PAYOUTS)
 				.select({
-					filterByFormula: `{userId} = '${userId}'`,
+					filterByFormula: `{userEmail} = '${userEmail}'`,
 					sort: [{ field: 'createdAt', direction: 'desc' }]
 				})
 				.all();
 
 			return records.map((record) => this.transformRecord(record));
 		} catch (error) {
-			console.error('Error fetching payouts by user ID:', error);
+			console.error('Error fetching payouts by user email:', error);
 			throw error;
 		}
 	}
@@ -119,11 +116,11 @@ export class PayoutService {
 	/**
 	 * Get user's total payout amount
 	 */
-	static async getUserTotalPayouts(userId: string): Promise<number> {
+	static async getUserTotalPayouts(userEmail: string): Promise<number> {
 		try {
 			const records = await base(TABLES.PAYOUTS)
 				.select({
-					filterByFormula: `{userId} = '${userId}'`
+					filterByFormula: `{userEmail} = '${userEmail}'`
 				})
 				.all();
 
@@ -136,24 +133,7 @@ export class PayoutService {
 		}
 	}
 
-	/**
-	 * Get payouts that haven't been submitted to unified system
-	 */
-	static async getUnsubmitted(): Promise<Payout[]> {
-		try {
-			const records = await base(TABLES.PAYOUTS)
-				.select({
-					filterByFormula: `{submittedToUnified} = FALSE()`,
-					sort: [{ field: 'createdAt', direction: 'asc' }]
-				})
-				.all();
 
-			return records.map((record) => this.transformRecord(record));
-		} catch (error) {
-			console.error('Error fetching unsubmitted payouts:', error);
-			throw error;
-		}
-	}
 
 	/**
 	 * Delete a payout
@@ -176,12 +156,9 @@ export class PayoutService {
 			const fieldsArray = payoutsData.map((payoutData) => ({
 				fields: {
 					tokens: payoutData.tokens,
-					userId: payoutData.userId,
+					userEmail: payoutData.userEmail,
 					memo: payoutData.memo,
-					createdAt: new Date().toISOString(),
-					submittedToUnified: payoutData.submittedToUnified || false,
-					baseHackatimeHours: payoutData.baseHackatimeHours || 0,
-					overridenHours: payoutData.overridenHours || 0
+					createdAt: new Date().toISOString()
 				} as AirtablePayout['fields']
 			}));
 
@@ -214,12 +191,9 @@ export class PayoutService {
 		return {
 			id: record.id,
 			tokens: fields.tokens,
-			userId: fields.userId,
+			userEmail: fields.userEmail,
 			memo: fields.memo,
-			createdAt: fields.createdAt ? new Date(fields.createdAt) : new Date(record.createdTime),
-			submittedToUnified: fields.submittedToUnified || false,
-			baseHackatimeHours: fields.baseHackatimeHours || 0,
-			overridenHours: fields.overridenHours || 0
+			createdAt: fields.createdAt ? new Date(fields.createdAt) : new Date(record.createdTime)
 		};
 	}
 }

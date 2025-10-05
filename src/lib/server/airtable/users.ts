@@ -3,13 +3,13 @@ import type { AirtableUser, UserWithTokens } from './types';
 
 export class UserService {
 	/**
-	 * Get a user by Slack ID
+	 * Get a user by email
 	 */
-	static async getBySlackId(slackId: string): Promise<AirtableUser | null> {
+	static async getByEmail(email: string): Promise<AirtableUser | null> {
 		try {
 			const records = await base(TABLES.USERS)
 				.select({
-					filterByFormula: `{slackId} = '${slackId}'`,
+					filterByFormula: `{email} = '${email}'`,
 					maxRecords: 1
 				})
 				.firstPage();
@@ -23,7 +23,7 @@ export class UserService {
 				createdTime: record.get('createdTime') as string
 			};
 		} catch (error) {
-			console.error('Error fetching user by Slack ID:', error);
+			console.error('Error fetching user by email:', error);
 			throw error;
 		}
 	}
@@ -76,33 +76,20 @@ export class UserService {
 	}
 
 	/**
-	 * Get user with calculated token balance
-	 * This method calculates tokens from payouts and orders
+	 * Get user with token balance
 	 */
-	static async getUserWithTokens(slackId: string): Promise<UserWithTokens | null> {
+	static async getUserWithTokens(email: string): Promise<UserWithTokens | null> {
 		try {
 			// Get user data
-			const user = await this.getBySlackId(slackId);
+			const user = await this.getByEmail(email);
 			if (!user) return null;
 
-			// If tokens are stored directly in Airtable (recommended approach)
-			if (typeof user.fields.tokens === 'number') {
-				return {
-					slackId: user.fields.slackId,
-					avatarUrl: user.fields.avatarUrl,
-					isAdmin: user.fields.isAdmin || false,
-					tokens: user.fields.tokens
-				};
-			}
-
-			// Fallback: Calculate tokens from payouts and orders
-			const tokens = await this.calculateUserTokens(slackId);
-
+			// Return user with token balance (stored directly in Airtable)
 			return {
-				slackId: user.fields.slackId,
-				avatarUrl: user.fields.avatarUrl,
+				email: user.fields.email,
+				name: user.fields.name,
 				isAdmin: user.fields.isAdmin || false,
-				tokens: tokens
+				tokens: user.fields.tokens || 0
 			};
 		} catch (error) {
 			console.error('Error getting user with tokens:', error);
@@ -111,14 +98,14 @@ export class UserService {
 	}
 
 	/**
-	 * Calculate user's token balance from payouts and orders
+	 * Calculate user's token balance from payouts and orders (backup method)
 	 */
-	static async calculateUserTokens(slackId: string): Promise<number> {
+	static async calculateUserTokens(email: string): Promise<number> {
 		try {
 			// Get user's payouts
 			const payoutRecords = await base(TABLES.PAYOUTS)
 				.select({
-					filterByFormula: `{userId} = '${slackId}'`
+					filterByFormula: `{userEmail} = '${email}'`
 				})
 				.all();
 
@@ -129,7 +116,7 @@ export class UserService {
 			// Get user's orders (pending and fulfilled)
 			const orderRecords = await base(TABLES.SHOP_ORDERS)
 				.select({
-					filterByFormula: `AND({userId} = '${slackId}', OR({status} = 'pending', {status} = 'fulfilled'))`
+					filterByFormula: `AND({userEmail} = '${email}', OR({status} = 'pending', {status} = 'fulfilled'))`
 				})
 				.all();
 
@@ -145,11 +132,11 @@ export class UserService {
 	}
 
 	/**
-	 * Update user's token balance directly (recommended approach)
+	 * Update user's token balance directly
 	 */
-	static async updateTokenBalance(slackId: string, tokens: number): Promise<AirtableUser | null> {
+	static async updateTokenBalance(email: string, tokens: number): Promise<AirtableUser | null> {
 		try {
-			const user = await this.getBySlackId(slackId);
+			const user = await this.getByEmail(email);
 			if (!user || !user.id) return null;
 
 			return await this.update(user.id, { tokens });
@@ -162,9 +149,9 @@ export class UserService {
 	/**
 	 * Subtract tokens from user's balance (for purchases)
 	 */
-	static async subtractTokens(slackId: string, amount: number): Promise<boolean> {
+	static async subtractTokens(email: string, amount: number): Promise<boolean> {
 		try {
-			const userWithTokens = await this.getUserWithTokens(slackId);
+			const userWithTokens = await this.getUserWithTokens(email);
 			if (!userWithTokens) return false;
 
 			if (userWithTokens.tokens < amount) {
@@ -172,7 +159,7 @@ export class UserService {
 			}
 
 			const newBalance = userWithTokens.tokens - amount;
-			const updated = await this.updateTokenBalance(slackId, newBalance);
+			const updated = await this.updateTokenBalance(email, newBalance);
 			return !!updated;
 		} catch (error) {
 			console.error('Error subtracting tokens:', error);
@@ -183,13 +170,13 @@ export class UserService {
 	/**
 	 * Add tokens to user's balance (for payouts)
 	 */
-	static async addTokens(slackId: string, amount: number): Promise<boolean> {
+	static async addTokens(email: string, amount: number): Promise<boolean> {
 		try {
-			const userWithTokens = await this.getUserWithTokens(slackId);
+			const userWithTokens = await this.getUserWithTokens(email);
 			if (!userWithTokens) return false;
 
 			const newBalance = userWithTokens.tokens + amount;
-			const updated = await this.updateTokenBalance(slackId, newBalance);
+			const updated = await this.updateTokenBalance(email, newBalance);
 			return !!updated;
 		} catch (error) {
 			console.error('Error adding tokens:', error);
@@ -209,19 +196,11 @@ export class UserService {
 			for (const record of records) {
 				const fields = record.fields as AirtableUser['fields'];
 				
-				let tokens = 0;
-				if (typeof fields.tokens === 'number') {
-					tokens = fields.tokens;
-				} else {
-					// Calculate tokens if not stored directly
-					tokens = await this.calculateUserTokens(fields.slackId);
-				}
-
 				users.push({
-					slackId: fields.slackId,
-					avatarUrl: fields.avatarUrl,
+					email: fields.email,
+					name: fields.name,
 					isAdmin: fields.isAdmin || false,
-					tokens: tokens
+					tokens: fields.tokens || 0
 				});
 			}
 

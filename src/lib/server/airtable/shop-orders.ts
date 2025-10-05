@@ -12,7 +12,7 @@ export class ShopOrderService {
 				priceAtOrder: orderData.priceAtOrder,
 				status: orderData.status || 'pending',
 				memo: orderData.memo,
-				userId: orderData.userId,
+				userEmail: orderData.userEmail,
 				createdAt: new Date().toISOString()
 			};
 
@@ -43,20 +43,20 @@ export class ShopOrderService {
 	}
 
 	/**
-	 * Get orders by user ID
+	 * Get orders by user email
 	 */
-	static async getByUserId(userId: string): Promise<ShopOrder[]> {
+	static async getByUserEmail(userEmail: string): Promise<ShopOrder[]> {
 		try {
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
-					filterByFormula: `{userId} = '${userId}'`,
+					filterByFormula: `{userEmail} = '${userEmail}'`,
 					sort: [{ field: 'createdAt', direction: 'desc' }]
 				})
 				.all();
 
 			return records.map((record) => this.transformRecord(record));
 		} catch (error) {
-			console.error('Error fetching orders by user ID:', error);
+			console.error('Error fetching orders by user email:', error);
 			throw error;
 		}
 	}
@@ -164,14 +164,14 @@ export class ShopOrderService {
 	 * Get user's total spent amount
 	 */
 	static async getUserTotalSpent(
-		userId: string,
+		userEmail: string,
 		statuses: ('pending' | 'fulfilled' | 'rejected')[] = ['pending', 'fulfilled']
 	): Promise<number> {
 		try {
 			const statusFilter = statuses.map((status) => `{status} = '${status}'`).join(', ');
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
-					filterByFormula: `AND({userId} = '${userId}', OR(${statusFilter}))`
+					filterByFormula: `AND({userEmail} = '${userEmail}', OR(${statusFilter}))`
 				})
 				.all();
 
@@ -197,7 +197,7 @@ export class ShopOrderService {
 			status: fields.status || 'pending',
 			memo: fields.memo,
 			createdAt: fields.createdAt ? new Date(fields.createdAt) : new Date(record.createdTime),
-			userId: fields.userId
+			userEmail: fields.userEmail
 		};
 	}
 }
