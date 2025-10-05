@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { db, shopItems } from '$lib/server/db';
+import { ShopItemService } from '$lib/server/airtable';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -36,13 +36,13 @@ export const actions: Actions = {
 		}
 
 		try {
-			await db.insert(shopItems).values({
+			await ShopItemService.create({
 				name,
 				description,
 				imageUrl,
 				price,
 				type,
-				hcbMids: hcbMids ? hcbMids.split(',').map((mid) => mid.trim()) : null
+				hcbMids: hcbMids ? hcbMids.split(',').map((mid) => mid.trim()) : undefined
 			});
 
 			return { success: true };

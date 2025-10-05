@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { shopItems, shopOrders, usersWithTokens } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { ShopItemService, ShopOrderService, UserService } from '$lib/server/airtable';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -19,24 +17,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Get the shop item
-		const shopItem = await db.select().from(shopItems).where(eq(shopItems.id, shopItemId)).limit(1);
-		if (!shopItem.length) {
+		const item = await ShopItemService.getById(shopItemId);
+		if (!item) {
 			return json({ error: 'Shop item not found' }, { status: 404 });
 		}
 
-		const item = shopItem[0];
-
 		// Get user's current token balance
-		const userWithTokens = await db
-			.select()
-			.from(usersWithTokens)
-			.where(eq(usersWithTokens.slackId, userId))
-			.limit(1);
-		if (!userWithTokens.length) {
+		const user = await UserService.getUserWithTokens(userId);
+		if (!user) {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
-
-		const user = userWithTokens[0];
 
 		// Check if user has enough tokens
 		if (user.tokens < item.price) {
@@ -50,21 +40,24 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
+		// Subtract tokens from user's balance (this is the key change for Airtable)
+		const tokenSubtracted = await UserService.subtractTokens(userId, item.price);
+		if (!tokenSubtracted) {
+			return json({ error: 'Failed to process token payment' }, { status: 500 });
+		}
+
 		// Create the order
-		const newOrder = await db
-			.insert(shopOrders)
-			.values({
-				shopItemId: item.id,
-				priceAtOrder: item.price,
-				userId: userId,
-				status: 'pending'
-			})
-			.returning();
+		const newOrder = await ShopOrderService.create({
+			shopItemId: item.id,
+			priceAtOrder: item.price,
+			userId: userId,
+			status: 'pending'
+		});
 
 		return json({
 			success: true,
-			order: newOrder[0],
-			message: 'Order created successfully'
+			order: newOrder,
+			message: 'Order created successfully and tokens deducted'
 		});
 	} catch (error) {
 		console.error('Order creation error:', error);

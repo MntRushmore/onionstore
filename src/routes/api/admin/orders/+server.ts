@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { shopItems, shopOrders } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { ShopOrderService, ShopItemService } from '$lib/server/airtable';
 import { WebClient } from '@slack/web-api';
 import { SLACK_BOT_TOKEN, LOOPS_API_KEY } from '$env/static/private';
 
@@ -52,50 +50,44 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Update the order
-		const updateData: { status: string; memo?: string } = { status };
-		if (memo !== undefined) {
-			updateData.memo = memo;
-		}
+		const updatedOrder = await ShopOrderService.updateStatus(
+			orderId, 
+			status as 'pending' | 'fulfilled' | 'rejected',
+			memo
+		);
 
-		const updatedOrder = await db
-			.update(shopOrders)
-			.set(updateData)
-			.where(eq(shopOrders.id, orderId))
-			.returning();
-
-		if (!updatedOrder.length) {
+		if (!updatedOrder) {
 			return json({ error: 'Order not found' }, { status: 404 });
 		}
 
-		const email = await getEmailFromSlackId(updatedOrder[0].userId);
+		const email = await getEmailFromSlackId(updatedOrder.userId);
 		if (email) {
-			const [shopItem] = await db
-				.select()
-				.from(shopItems)
-				.where(eq(shopItems.id, updatedOrder[0].shopItemId));
-			const res = await fetch("https://app.loops.so/api/v1/transactional", {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${LOOPS_API_KEY}`,
-				},
-				body: JSON.stringify({
-					transactionalId: status === "fulfilled" ? "cmds33dqs1iis230ieyfsf4ue" : "cmds3pk591ppv2n0ii2v520dd",
-					email,
-					dataVariables: {
-						itemName: shopItem.name,
-						orderId: updatedOrder[0].id.slice(0, 8),
-						memo: memo || 'Unknown reason.',
-					}
+			const shopItem = await ShopItemService.getById(updatedOrder.shopItemId);
+			if (shopItem) {
+				const res = await fetch("https://app.loops.so/api/v1/transactional", {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${LOOPS_API_KEY}`,
+					},
+					body: JSON.stringify({
+						transactionalId: status === "fulfilled" ? "cmds33dqs1iis230ieyfsf4ue" : "cmds3pk591ppv2n0ii2v520dd",
+						email,
+						dataVariables: {
+							itemName: shopItem.name,
+							orderId: updatedOrder.id.slice(0, 8),
+							memo: memo || 'Unknown reason.',
+						}
+					})
 				})
-			})
-			if (!res.ok) {
-				console.error('Failed to send email notification:', await res.text());
+				if (!res.ok) {
+					console.error('Failed to send email notification:', await res.text());
+				}
 			}
 		}
 
 		return json({
 			success: true,
-			order: updatedOrder[0],
+			order: updatedOrder,
 			message: `Order ${status} successfully`
 		});
 	} catch (error) {

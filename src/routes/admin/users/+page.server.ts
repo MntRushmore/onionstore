@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { db, usersWithTokens, shopOrders, shopItems } from '$lib/server/db';
-import { eq } from 'drizzle-orm';
+import { UserService, ShopOrderService, ShopItemService } from '$lib/server/airtable';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -9,22 +8,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// Get all users with their token counts
-	const users = await db.select().from(usersWithTokens);
+	const users = await UserService.getAllUsersWithTokens();
 
-	// Get all orders with user and item details
-	const orders = await db
-		.select({
-			id: shopOrders.id,
-			userId: shopOrders.userId,
-			priceAtOrder: shopOrders.priceAtOrder,
-			status: shopOrders.status,
-			createdAt: shopOrders.createdAt,
-			itemName: shopItems.name,
-			itemType: shopItems.type
+	// Get all orders
+	const allOrders = await ShopOrderService.getAll();
+	
+	// Add item details to orders
+	const orders = await Promise.all(
+		allOrders.map(async (order) => {
+			const item = await ShopItemService.getById(order.shopItemId);
+			return {
+				id: order.id,
+				userId: order.userId,
+				priceAtOrder: order.priceAtOrder,
+				status: order.status,
+				createdAt: order.createdAt,
+				itemName: item?.name || 'Unknown Item',
+				itemType: item?.type || 'unknown'
+			};
 		})
-		.from(shopOrders)
-		.leftJoin(shopItems, eq(shopOrders.shopItemId, shopItems.id))
-		.orderBy(shopOrders.createdAt);
+	);
 
 	return {
 		users,
