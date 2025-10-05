@@ -53,8 +53,8 @@ Copy the `app...` part (that's your Base ID).
 Edit your `.env` file:
 
 ```bash
-# Add your Airtable credentials
-AIRTABLE_API_KEY=your_airtable_api_key_here
+# Add your Airtable credentials  
+AIRTABLE_ACCESS_TOKEN=your_airtable_api_key_here
 AIRTABLE_BASE_ID=your_actual_base_id_here
 
 # Table names (keep these as-is)

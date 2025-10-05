@@ -9,8 +9,19 @@ if (!process.env.AIRTABLE_ACCESS_TOKEN) {
 	throw new Error('AIRTABLE_ACCESS_TOKEN environment variable is required');
 }
 
-if (!process.env.AIRTABLE_BASE_ID) {
-	throw new Error('AIRTABLE_BASE_ID environment variable is required');
+if (!process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID === 'appXXXXXXXXXXXXXX') {
+	throw new Error(`
+❌ AIRTABLE_BASE_ID environment variable is required!
+
+🔧 To fix this:
+1. Go to your Airtable base in your browser
+2. Look at the URL: https://airtable.com/app[BASE_ID]/...  
+3. Copy the "app[BASE_ID]" part (starts with "app")
+4. Add it to your .env file:
+   AIRTABLE_BASE_ID=app[your_actual_base_id]
+
+Current value: ${process.env.AIRTABLE_BASE_ID}
+	`);
 }
 
 // Initialize Airtable connection using AirtableConnect wrapper

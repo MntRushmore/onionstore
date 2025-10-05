@@ -45,6 +45,7 @@
 		"@theo-dev/airtable-connect": "^0.2.34",
 		"airtable": "^0.12.2",
 		"canvas-confetti": "^1.9.3",
+		"dotenv": "^17.2.3",
 		"nanoid": "^5.1.5",
 		"svelte-sonner": "^1.0.5"
 	}
