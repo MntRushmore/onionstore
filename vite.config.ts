@@ -9,7 +9,7 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
 		port: 3000,
-		host: true,
-		allowedHosts: ['all']
+		host: '0.0.0.0',
+		allowedHosts: 'all'
 	}
 });
