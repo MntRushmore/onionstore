@@ -1,6 +1,8 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import { UserService } from '$lib/server/airtable';
 import { redirect, type Handle } from '@sveltejs/kit';
+import { SESSIONS_SECRET } from '$env/static/private';
+import { symmetric } from '$lib/server/crypto';
 
 const authMiddleware: Handle = async ({ event, resolve }) => {
 	// Skip auth for login and API routes
@@ -12,31 +14,28 @@ const authMiddleware: Handle = async ({ event, resolve }) => {
 
 	const sessionCookie = event.cookies.get('session');
 	if (!sessionCookie) {
-		// No session, redirect to login
 		throw redirect(302, '/login');
 	}
 
 	try {
-		// Parse session data (simple approach - in production use proper session management)
-		const sessionData = JSON.parse(sessionCookie);
+		// Decrypt the email from session
+		const email = await symmetric.decrypt(sessionCookie, SESSIONS_SECRET);
 		
-		if (!sessionData.email) {
+		if (!email) {
 			throw new Error('Invalid session data');
 		}
 
-		// Get fresh user data from Airtable
-		const user = await UserService.getUserWithTokens(sessionData.email);
+		// Get user from Airtable
+		const user = await UserService.getUserWithTokens(email);
 		if (!user) {
-			// User doesn't exist anymore, clear session
 			event.cookies.delete('session', { path: '/' });
 			throw redirect(302, '/login');
 		}
 
-		// Set user in locals for access in routes
 		event.locals.user = user;
 		
 	} catch (error) {
-		// Invalid session, clear it and redirect to login
+		console.error('Auth error:', error);
 		event.cookies.delete('session', { path: '/' });
 		throw redirect(302, '/login');
 	}

@@ -8,12 +8,10 @@ export class ShopOrderService {
 	static async create(orderData: Omit<ShopOrder, 'id' | 'createdAt'>): Promise<ShopOrder> {
 		try {
 			const fields: AirtableShopOrder['fields'] = {
-				shopItemId: orderData.shopItemId,
+				shopitemid: orderData.shopItemId,
 				priceAtOrder: orderData.priceAtOrder,
 				status: orderData.status || 'pending',
-				memo: orderData.memo,
-				userEmail: orderData.userEmail,
-				createdAt: new Date().toISOString()
+				Email: orderData.userEmail
 			};
 
 			const records = await base(TABLES.SHOP_ORDERS).create([{ fields }]);
@@ -49,8 +47,8 @@ export class ShopOrderService {
 		try {
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
-					filterByFormula: `{userEmail} = '${userEmail}'`,
-					sort: [{ field: 'createdAt', direction: 'desc' }]
+					filterByFormula: `{Email} = '${userEmail}'`,
+					sort: [{ field: 'createdTime', direction: 'desc' }]
 				})
 				.all();
 
@@ -68,7 +66,7 @@ export class ShopOrderService {
 		try {
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
-					sort: [{ field: 'createdAt', direction: 'desc' }]
+					sort: [{ field: 'createdTime', direction: 'desc' }]
 				})
 				.all();
 
@@ -84,17 +82,13 @@ export class ShopOrderService {
 	 */
 	static async updateStatus(
 		id: string,
-		status: 'pending' | 'fulfilled' | 'rejected',
+		status: 'pending' | 'fulfilled' | 'cancelled',
 		memo?: string
 	): Promise<ShopOrder> {
 		try {
 			const updateFields: Partial<AirtableShopOrder['fields']> = {
 				status
 			};
-
-			if (memo !== undefined) {
-				updateFields.memo = memo;
-			}
 
 			const records = await base(TABLES.SHOP_ORDERS).update([
 				{
@@ -114,12 +108,12 @@ export class ShopOrderService {
 	/**
 	 * Get orders by status
 	 */
-	static async getByStatus(status: 'pending' | 'fulfilled' | 'rejected'): Promise<ShopOrder[]> {
+	static async getByStatus(status: 'pending' | 'fulfilled' | 'cancelled'): Promise<ShopOrder[]> {
 		try {
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
 					filterByFormula: `{status} = '${status}'`,
-					sort: [{ field: 'createdAt', direction: 'desc' }]
+					sort: [{ field: 'createdTime', direction: 'desc' }]
 				})
 				.all();
 
@@ -165,13 +159,13 @@ export class ShopOrderService {
 	 */
 	static async getUserTotalSpent(
 		userEmail: string,
-		statuses: ('pending' | 'fulfilled' | 'rejected')[] = ['pending', 'fulfilled']
+		statuses: ('pending' | 'fulfilled' | 'cancelled')[] = ['pending', 'fulfilled']
 	): Promise<number> {
 		try {
 			const statusFilter = statuses.map((status) => `{status} = '${status}'`).join(', ');
 			const records = await base(TABLES.SHOP_ORDERS)
 				.select({
-					filterByFormula: `AND({userEmail} = '${userEmail}', OR(${statusFilter}))`
+					filterByFormula: `AND({Email} = '${userEmail}', OR(${statusFilter}))`
 				})
 				.all();
 
@@ -192,12 +186,12 @@ export class ShopOrderService {
 
 		return {
 			id: record.id,
-			shopItemId: fields.shopItemId,
+			shopItemId: fields.shopitemid || '',
 			priceAtOrder: fields.priceAtOrder,
 			status: fields.status || 'pending',
 			memo: fields.memo,
-			createdAt: fields.createdAt ? new Date(fields.createdAt) : new Date(record.createdTime),
-			userEmail: fields.userEmail
+			createdAt: new Date(record.get('createdTime') as string),
+			userEmail: fields.Email
 		};
 	}
 }

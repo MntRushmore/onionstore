@@ -1,8 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { AuthService } from '$lib/server/auth';
+import { symmetric } from '$lib/server/crypto';
+import { SESSIONS_SECRET } from '$env/static/private';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+	// Clear any old corrupted session cookies
+	cookies.delete('session', { path: '/' });
+	
 	// If already logged in, redirect to shop
 	if (locals.user) {
 		throw redirect(302, '/');
@@ -32,9 +37,9 @@ export const actions: Actions = {
 				return fail(500, { error: 'Failed to create or login user' });
 			}
 
-			// Create session cookie (simple approach - in production use proper session management)
-			const sessionData = AuthService.createSession(user);
-			cookies.set('session', JSON.stringify(sessionData), {
+			// Create encrypted session cookie
+			const encryptedSession = await symmetric.encrypt(email, SESSIONS_SECRET);
+			cookies.set('session', encryptedSession, {
 				path: '/',
 				httpOnly: true,
 				secure: process.env.NODE_ENV === 'production',

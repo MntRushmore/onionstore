@@ -1,86 +1,85 @@
-// Airtable field mappings and types
-
+// User types
 export interface AirtableUser {
-	id?: string;
+	id: string;
 	fields: {
-		email: string;
-		name?: string;
+		filloutemail: string;
+		Name: string;
+		Tokens?: number;
 		isAdmin?: boolean;
-		tokens?: number; // Token balance stored directly
+		Country?: string;
+		Team?: string;
+		Account?: string;
 	};
-	createdTime?: string;
+	createdTime: string;
 }
 
-export interface AirtableShopItem {
-	id?: string;
-	fields: {
-		name: string;
-		description: string;
-		imageUrl: string;
-		price: number;
-		usd_cost?: number;
-		type?: 'hcb' | 'third_party';
-		hcbMids?: string; // JSON string of array
-	};
-	createdTime?: string;
-}
-
-export interface AirtableShopOrder {
-	id?: string;
-	fields: {
-		shopItemId: string; // Link to Shop Items table
-		priceAtOrder: number;
-		status?: 'pending' | 'fulfilled' | 'rejected';
-		memo?: string;
-		createdAt?: string;
-		userEmail: string; // User's email
-	};
-	createdTime?: string;
-}
-
-export interface AirtablePayout {
-	id?: string;
-	fields: {
-		tokens: number;
-		userEmail: string; // User's email
-		memo?: string;
-		createdAt?: string;
-	};
-	createdTime?: string;
-}
-
-// Simplified types for email-based authentication
 export interface UserWithTokens {
 	email: string;
-	name?: string;
+	name: string;
 	isAdmin: boolean;
 	tokens: number;
+}
+
+// Shop Item types
+export interface AirtableShopItem {
+	id: string;
+	fields: {
+		name: string;
+		description?: string;
+		imageUrl?: string;
+		price: number;
+		usd_cost?: number;
+		type?: string;
+		hcbMids?: string; // JSON string
+	};
+	createdTime: string;
 }
 
 export interface ShopItem {
 	id: string;
 	name: string;
-	description: string;
-	imageUrl: string;
+	description?: string;
+	imageUrl?: string;
 	price: number;
 	usd_cost?: number;
-	type?: 'digital' | 'physical';
+	type?: string;
+	hcbMids?: string[];
+}
+
+// Shop Order types
+export interface AirtableShopOrder {
+	id: string;
+	fields: {
+		'Item Name'?: string;
+		Email: string;
+		userid?: string;
+		Account?: string;
+		priceAtOrder: number;
+		status: 'pending' | 'fulfilled' | 'cancelled';
+		'Spent if Approved'?: number;
+		shopitemid?: string;
+		'name (from shopitemid)'?: string;
+		memo?: string;
+	};
+	createdTime: string;
 }
 
 export interface ShopOrder {
 	id: string;
 	shopItemId: string;
 	priceAtOrder: number;
-	status: 'pending' | 'fulfilled' | 'rejected';
+	status: 'pending' | 'fulfilled' | 'cancelled';
 	memo?: string;
-	createdAt?: Date;
+	createdAt: Date;
 	userEmail: string;
 }
 
-export interface Payout {
+// Payout/Submission types
+export interface AirtablePayout {
 	id: string;
-	tokens: number;
-	userEmail: string;
-	memo?: string;
-	createdAt?: Date;
+	fields: {
+		userEmail: string;
+		tokens: number;
+	};
+	createdTime: string;
 }

@@ -47,8 +47,7 @@ export class ShopItemService {
 				imageUrl: itemData.imageUrl,
 				price: itemData.price,
 				usd_cost: itemData.usd_cost,
-				type: itemData.type,
-				hcbMids: itemData.hcbMids ? JSON.stringify(itemData.hcbMids) : undefined
+				type: itemData.type
 			};
 
 			const records = await base(TABLES.SHOP_ITEMS).create([{ fields }]);
@@ -67,8 +66,7 @@ export class ShopItemService {
 	static async update(id: string, updates: Partial<Omit<ShopItem, 'id'>>): Promise<ShopItem> {
 		try {
 			const fields: Partial<AirtableShopItem['fields']> = {
-				...updates,
-				hcbMids: updates.hcbMids ? JSON.stringify(updates.hcbMids) : undefined
+				...updates
 			};
 
 			const records = await base(TABLES.SHOP_ITEMS).update([
@@ -105,16 +103,6 @@ export class ShopItemService {
 	private static transformRecord(record: any): ShopItem {
 		const fields = record.fields as AirtableShopItem['fields'];
 
-		let hcbMids: string[] | undefined;
-		if (fields.hcbMids) {
-			try {
-				hcbMids = JSON.parse(fields.hcbMids);
-			} catch (e) {
-				console.warn('Failed to parse hcbMids JSON:', fields.hcbMids);
-				hcbMids = [];
-			}
-		}
-
 		return {
 			id: record.id,
 			name: fields.name,
@@ -122,8 +110,7 @@ export class ShopItemService {
 			imageUrl: fields.imageUrl,
 			price: fields.price,
 			usd_cost: fields.usd_cost,
-			type: fields.type,
-			hcbMids
+			type: fields.type
 		};
 	}
 }

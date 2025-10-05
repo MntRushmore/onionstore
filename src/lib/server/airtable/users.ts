@@ -89,7 +89,7 @@ export class UserService {
 				email: user.fields.filloutemail,
 				name: user.fields.Name,
 				isAdmin: user.fields.isAdmin || false,
-				tokens: user.fields.tokens || 0
+				tokens: user.fields.Tokens || 0
 			};
 		} catch (error) {
 			console.error('Error getting user with tokens:', error);

@@ -1,6 +1,6 @@
 import { PUBLIC_SLACK_CLIENT_ID } from '$env/static/public';
 import { SESSIONS_SECRET, SLACK_CLIENT_SECRET } from '$env/static/private';
-import { db, rawUsers } from '$lib/server/db';
+import { UserService } from '$lib/server/airtable';
 import { json, redirect } from '@sveltejs/kit';
 import { symmetric } from '$lib/server/crypto';
 
@@ -42,7 +42,6 @@ export async function GET({ url, cookies }) {
 	exchangeSearchParams.append('client_id', PUBLIC_SLACK_CLIENT_ID);
 	exchangeSearchParams.append('client_secret', SLACK_CLIENT_SECRET);
 	exchangeSearchParams.append('code', code);
-	console.log(`${url.origin}/api/slack-callback`);
 	exchangeSearchParams.append('redirect_uri', `${url.origin}/api/slack-callback`);
 
 	const oidcResponse = await fetch(exchangeUrl, { method: 'POST' });
@@ -70,28 +69,25 @@ export async function GET({ url, cookies }) {
 	}
 
 	const slackId = jwt['https://slack.com/user_id'];
+	const email = jwt.email; // Get email from JWT
+	const name = jwt.name || slackId;
 	const avatarUrl = jwt.picture;
 
-	// console.log(jwt)
-
-	await db
-		.insert(rawUsers)
-		.values({
-			slackId,
-			avatarUrl,
+	// Check if user exists, create if not
+	let user = await UserService.getByEmail(email);
+	
+	if (!user) {
+		user = await UserService.create({
+			filloutemail: email,
+			Name: name,
+			Tokens: 0,
 			isAdmin: false
-		})
-		.onConflictDoUpdate({
-			target: rawUsers.slackId,
-			set: {
-				// update the avatar on each login!
-				avatarUrl
-			}
 		});
+	}
 
-	cookies.set('session', await symmetric.encrypt(slackId, SESSIONS_SECRET), {
+	cookies.set('session', await symmetric.encrypt(email, SESSIONS_SECRET), {
 		path: '/',
-		maxAge: 60 * 60 * 24 * 90 // 90 days in seconds
+		maxAge: 60 * 60 * 24 * 90 // 90 days
 	});
 
 	throw redirect(301, '/');
