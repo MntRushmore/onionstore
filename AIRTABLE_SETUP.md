@@ -43,10 +43,11 @@ Go to [Airtable](https://airtable.com) and create a new base with these tables:
 | `memo` | Long text | Payout notes |
 | `createdAt` | Date | Payout timestamp |
 
-### 2. **Get Your Airtable Base ID**
+### 2. **Get Your Airtable Credentials**
 
-From your base URL: `https://airtable.com/app[BASE_ID]/...`
-Copy the `app...` part (that's your Base ID).
+**Personal Access Token**: Go to [Airtable Tokens](https://airtable.com/create/tokens) → Create new token → Copy it
+
+**Base ID**: From your base URL: `https://airtable.com/app[BASE_ID]/...` → Copy the `app...` part
 
 ### 3. **Update Environment Variables**
 
@@ -54,7 +55,7 @@ Edit your `.env` file:
 
 ```bash
 # Add your Airtable credentials  
-AIRTABLE_ACCESS_TOKEN=your_airtable_api_key_here
+AIRTABLE_ACCESS_TOKEN=your_airtable_personal_access_token_here
 AIRTABLE_BASE_ID=your_actual_base_id_here
 
 # Table names (keep these as-is)

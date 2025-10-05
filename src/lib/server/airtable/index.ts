@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
-console.log("Loaded Airtable token prefix:", process.env.AIRTABLE_ACCESS_TOKEN?.slice(0, 5));
+console.log("✅ Loaded Airtable Personal Access Token prefix:", process.env.AIRTABLE_ACCESS_TOKEN?.slice(0, 5));
 
 import AirtableConnectModule from '@theo-dev/airtable-connect';
 const AirtableConnect = AirtableConnectModule.AirtableConnect;
 
 if (!process.env.AIRTABLE_ACCESS_TOKEN) {
-	throw new Error('AIRTABLE_ACCESS_TOKEN environment variable is required');
+	throw new Error('❌ AIRTABLE_ACCESS_TOKEN environment variable is required. Please add your Airtable Personal Access Token to your .env file.');
 }
 
 if (!process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID === 'appXXXXXXXXXXXXXX') {
@@ -23,6 +23,8 @@ if (!process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID === 'appXXXXXX
 Current value: ${process.env.AIRTABLE_BASE_ID}
 	`);
 }
+
+console.log("✅ Using Airtable Base ID:", process.env.AIRTABLE_BASE_ID);
 
 // Initialize Airtable connection using AirtableConnect wrapper
 const { AirtableBase } = new AirtableConnect({
