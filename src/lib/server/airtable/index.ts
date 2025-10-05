@@ -1,17 +1,25 @@
-import Airtable from 'airtable';
+import dotenv from 'dotenv';
+dotenv.config();
+console.log("Loaded Airtable token prefix:", process.env.AIRTABLE_ACCESS_TOKEN?.slice(0, 5));
 
-if (!process.env.AIRTABLE_API_KEY) {
-	throw new Error('AIRTABLE_API_KEY environment variable is required');
+import AirtableConnectModule from '@theo-dev/airtable-connect';
+const AirtableConnect = AirtableConnectModule.AirtableConnect;
+
+if (!process.env.AIRTABLE_ACCESS_TOKEN) {
+	throw new Error('AIRTABLE_ACCESS_TOKEN environment variable is required');
 }
 
 if (!process.env.AIRTABLE_BASE_ID) {
 	throw new Error('AIRTABLE_BASE_ID environment variable is required');
 }
 
-// Initialize Airtable
-const base = new Airtable({
-	apiKey: process.env.AIRTABLE_API_KEY
-}).base(process.env.AIRTABLE_BASE_ID);
+// Initialize Airtable connection using AirtableConnect wrapper
+const { AirtableBase } = new AirtableConnect({
+	apiKey: process.env.AIRTABLE_ACCESS_TOKEN!,
+	baseId: process.env.AIRTABLE_BASE_ID!,
+});
+
+const base = AirtableBase;
 
 // Table names - customize these to match your Airtable base
 const TABLES = {
